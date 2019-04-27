@@ -1,0 +1,73 @@
+version: '3.3'
+services:
+  kafkazookeeper:
+    image: registry.gitlab.com/csai/dampvx.kafka:v1.2
+    networks:
+      - logic
+    ports:
+      - 9092:9092
+      - 2181:2181
+    container_name: kafkazookeeper
+    hostname: kafkazookeeper
+    environment:
+      ADVERTISED_HOST: "192.168.64.2" #à replacer avec votre docker-machine ip (if executed on Mac, find this ip by 'docker-machine ip')
+      ADVERTISED_PORT: "9092"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  db:
+    image: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    networks:
+      - logic
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+
+  adminer:
+    image: adminer
+    restart: always
+    networks:
+      - logic
+    ports:
+      - 8080:8080
+
+  spark-master:
+    image: bde2020/spark-master:2.4.0-hadoop2.7
+    container_name: spark-master
+    networks:
+      - logic
+    ports:
+      - "8081:8080"
+      - "7077:7077"
+    environment:
+      - INIT_DAEMON_STEP=setup_spark
+      - "constraint:node==spark-master"
+
+  spark-worker-1:
+    image: bde2020/spark-worker:2.4.0-hadoop2.7
+    container_name: spark-worker-1
+    networks:
+      - logic
+    depends_on:
+      - spark-master
+    ports:
+      - "8082:8081"
+    environment:
+      - "SPARK_MASTER=spark://spark-master:7077"
+      - "constraint:node==spark-worker-1"
+
+  nifi:
+    image: apache/nifi
+    networks:
+      - logic
+    container_name: nifi
+    ports:
+      - 8093:8080
+    environment:
+      - NIFI_WEB_HTTP_PORT=8080
+
+networks:
+  logic:
+    external:
+      name: logic
