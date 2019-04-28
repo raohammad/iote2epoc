@@ -1,8 +1,0 @@
-DROP TABLE IF EXISTS `bcm`;
-
-CREATE TABLE `bcm` (
-  `region` varchar(100) DEFAULT NULL,
-  `hour` varchar(32) DEFAULT NULL,
-  `temperature` double DEFAULT NULL,
-  `temperature3hoursbefore` double DEFAULT NULL
-)

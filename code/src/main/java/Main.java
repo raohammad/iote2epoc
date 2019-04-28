@@ -2,6 +2,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import db.MySqlPoolableObjectFactory;
 import domain.IOTRecord;
 import exception.MySqlPoolableException;
+import gis.Gis;
 import org.apache.commons.pool.ObjectPool;
 import org.apache.commons.pool.PoolableObjectFactory;
 import org.apache.commons.pool.impl.GenericObjectPool;
@@ -41,25 +42,18 @@ public class Main {
 
     public static void main(String[] args) throws InterruptedException, IOException {
 
-        //Read the io.lingk.streaming.poc.Recipe
-        ClassLoader classLoader = Main.class.getClassLoader();
+        //ClassLoader classLoader = Main.class.getClassLoader();
+        //GIS Data object
+        final Gis gis = new Gis();
 
-//        final String MYSQL_CONNECTION_URL =
-//                "jdbc:mysql://" + DBHOST + "/bcm?useLegacyDatetimeCode=false&serverTimezone=UTC";
-        //"jdbc:mysql://"+sourceProvider.getProperties().get("host");
-
-//        final Properties connectionProperties = new Properties();
-//        connectionProperties.put("user", MYSQL_USERNAME);
-//        connectionProperties.put("password", MYSQL_PWD);
-
-        //SparkConf conf = new SparkConf().setAppName("bcm poc").setMaster("spark://"+SPARKMASTER+":7077");
-        //conf.set("spark.driver.allowMultipleContexts", "true");
         SparkConf conf = new SparkConf().setAppName("bcm poc").setMaster("local[*]");
         conf.set("spark.driver.allowMultipleContexts", "true");
 
-        JavaStreamingContext ssc = new JavaStreamingContext(conf, new Duration(1000));
+        //if want to run in cluster, comment above two lines and uncomment below two lines
+        //SparkConf conf = new SparkConf().setAppName("bcm poc").setMaster("spark://"+SPARKMASTER+":7077");
+        //conf.set("spark.driver.allowMultipleContexts", "true");
 
-        //SQLContext sqlcontext = new org.apache.spark.sql.SQLContext(ssc.sparkContext())
+        JavaStreamingContext ssc = new JavaStreamingContext(conf, new Duration(1000));
 
         Map<String, Object> kafkaParams = new HashMap<>();
         kafkaParams.put("bootstrap.servers", KAFKAHOST+":9092");
@@ -91,12 +85,12 @@ public class Main {
 
                     //SQLContext sqlContext = new SQLContext(sc);
                     IOTRecord iotRecord = mapper.readValue(record.value(), IOTRecord.class);
-                    if(iotRecord.getCountry().equalsIgnoreCase("France")){
+                    //if(iotRecord.getCountry().equalsIgnoreCase("France")){
 
                         //System.out.println(record.value());
                         //1-find if record exists for this region
-                        String sql = "select * from "+TABLE+" where region='"+findRegion(iotRecord.getLat(),iotRecord.getLon())+"' AND hour='"+iotRecord.getHour()+"'";
-                        System.out.println(sql);
+                        String sql = "select * from "+TABLE+" where region='"+gis.getRegionOfPoint(iotRecord.getLat(),iotRecord.getLon())+"' AND hour='"+iotRecord.getHour()+"'";
+                        //System.out.println(sql);
                         List<String> allRecords = new ArrayList();
                         Connection conn = null;
                         Statement st = null;
@@ -109,14 +103,14 @@ public class Main {
                             while (res.next()) {
                                 String dbrec = (String.valueOf(res.getString(1))+","+res.getString(2) +","+ String.valueOf(res.getDouble(3))+","+String.valueOf(res.getDouble(4)));
                                 //System.out.println(someRecord);
-                                System.out.println(dbrec);
+                                //System.out.println(dbrec);
                                 allRecords.add(dbrec);
                             }
 
                             if(allRecords.size()<1){
                                 //its a new record for this hour for this region
                                 String insertQuery =
-                                        "INSERT INTO "+TABLE+"(region,hour, temperature,temperature3hoursbefore) VALUES ('"+findRegion(iotRecord.getLat(),iotRecord.getLon())
+                                        "INSERT INTO "+TABLE+"(region,hour, temperature,temperature3hoursbefore) VALUES ('"+gis.getRegionOfPoint(iotRecord.getLat(),iotRecord.getLon())
                                                 +"','"+iotRecord.getHour()+"',"+iotRecord.getTemperature()+",10.33);";
                                 //st = conn.prepareCall(insertQuery);
                                 st.execute(insertQuery);
@@ -124,7 +118,7 @@ public class Main {
                             }else{ //means record exist for this hour
                                 //IDF,2019-04-26 09,20.4694,10.33 [saved record in db]
                                 double mean = (Double.valueOf(allRecords.get(0).split(",")[2])+iotRecord.getTemperature())/2;
-                                String updateQuery = "UPDATE "+TABLE+" SET temperature="+mean+" WHERE region='"+findRegion(iotRecord.getLat(),iotRecord.getLon())+"' AND hour='"+iotRecord.getHour()+"'";
+                                String updateQuery = "UPDATE "+TABLE+" SET temperature="+mean+" WHERE region='"+gis.getRegionOfPoint(iotRecord.getLat(),iotRecord.getLon())+"' AND hour='"+iotRecord.getHour()+"'";
                                 st.execute(updateQuery);
                             }
 
@@ -137,10 +131,10 @@ public class Main {
                             cal.add(Calendar.HOUR_OF_DAY, -3);
                             //System.out.println(simpleDateFormat.format(cal.getTime()));
 
-                            ResultSet threeHrsAgo = st.executeQuery("select * from "+TABLE+" where region='"+findRegion(iotRecord.getLat(),iotRecord.getLon())+"' AND hour='"+simpleDateFormat.format(cal.getTime()).substring(0,13)+"'");
+                            ResultSet threeHrsAgo = st.executeQuery("select * from "+TABLE+" where region='"+gis.getRegionOfPoint( iotRecord.getLat(),iotRecord.getLon())+"' AND hour='"+simpleDateFormat.format(cal.getTime()).substring(0,13)+"'");
                             while (threeHrsAgo.next()){
                                 //if exist, just update the current record with 3hrs ago temperature field of resultset
-                                st.execute("UPDATE "+TABLE+" SET temperature3hoursbefore="+String.valueOf(res.getDouble(4))+" WHERE region='"+findRegion(iotRecord.getLat(),iotRecord.getLon())+"' AND hour='"+iotRecord.getHour()+"'");
+                                st.execute("UPDATE "+TABLE+" SET temperature3hoursbefore="+String.valueOf(res.getDouble(4))+" WHERE region='"+gis.getRegionOfPoint(iotRecord.getLat(),iotRecord.getLon())+"' AND hour='"+iotRecord.getHour()+"'");
                             }
 
                         } catch (SQLException e) {
@@ -155,18 +149,7 @@ public class Main {
                             pool.returnObject(conn);
                         }
 
-//                        //sparksql Read the table
-//                        Dataset<Row> df = sqlContext
-//                                .read()
-//                                .jdbc(MYSQL_CONNECTION_URL,
-//                                "bcm",
-//                                connectionProperties);
-//                        df.show();
-//                        df.printSchema();
-//                        Dataset<Row> appendSql = sqlContext.sql("INSERT INTO bcm VALUES('region' , 'hour', 21.4834 , -15)");
-
-
-                    }
+                    //}
                 }
             });
         });
@@ -197,10 +180,14 @@ public class Main {
         return pool;
     }
 
-    private static String findRegion(double lat, double lon){
-        System.out.println("Lat:"+lat+" Lon:"+lon);
-
-        return "IDF";
-    }
-
 }
+
+
+//X:45.788378  Y:3.1331436     rectangleIs:Rectangle(topleft=(-4.794442465565631 , 48.88419797237283),
+//                                                bottomleft=(-4.794442465565631 , 48.864618154886266),
+//                                                  topright=(-1.014926254394247 , 48.88419797237283),
+//                                               bottomright=(-1.014926254394247 , 48.864618154886266))
+
+//X:45.788378  Y:3.1331436     rectangleIs:Rectangle(topleft=(-1.791835769158259 , 47.17582098220192), bottomleft=(-1.791835769158259 , 45.12753588807382), topright=(2.612244390002303 , 47.17582098220192), bottomright=(2.612244390002303 , 45.12753588807382))
+//X:45.788378  Y:3.1331436     rectangleIs:Rectangle(topleft=(1.380591203451822 , 51.08913534282979), bottomleft=(1.380591203451822 , 50.38445024324975), topright=(4.256559118344402 , 51.08913534282979), bottomright=(4.256559118344402 , 50.38445024324975))
+//X:45.788378  Y:3.1331436     rectangleIs:Rectangle(topleft=(-0.326413687875006 , 45.04675055052946), bottomleft=(-0.326413687875006 , 43.33384713062523), topright=(4.845738883093551 , 45.04675055052946), bottomright=(4.845738883093551 , 43.33384713062523))
