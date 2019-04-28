@@ -1,31 +1,4 @@
 # IOT Data Usecase POC
-
-## Read before starting
-
-The following test aims at helping you to show us your qualities as a Data Engineer. 
-You are expected to be able to code, interact with data from an external API and create an industrialized data pipeline. As a Data Engineer we also expect you to have great skills as a developer ;)
-
-* What we **do expect** from you: 
-    - Show us your best skills. Answer every question.
-    - Explaining how, what and why you do something is as important as coding. Diagrams and schemas will weight as much as functions and methods.
-    - If you arrived here, you know about *craftsmanship* ;) do not forget it when coding.
-
-* What we **do not** expect:
-    - That you spend too much time doing this test, it's desinged to be finished in less than 4 hours (ich). You can spend more or less time, (if you add time, keep it reasonable).
-    - You spend an awful moment taking the test ;).
-
-* What's **a bonus**:
-    - Your code is tested with a high coverage (>80%).
-    - The application you wrote works properly.
-    - The explanation of the architecture/technology is not only answered but also highly detailed for each expected point: 
-        * SPOFs (if any)
-        * Future problems
-        * Budget
-        * Maintenance
-        * Technical debt
-        * DevOps tecnhiques.
-        * ...
-    - Even if you show your knowledge with other technologies, your solution can be deployed to Google Cloud Platform.
  
 ## Context
 
@@ -131,35 +104,35 @@ Considering the audience of this POC are data engineers/architects/developers; a
 
 ### for each expected point (**a bonus**):
 
-        ** SPOFs (if any) **
+** SPOFs (if any) **
 
-          POC in its current form is not clustered/fault tolerant. Running in high availability would require addition configuration on components but the components chosen all support clustering and active/active or active/standby configurations at each level (other than MySQL).
+  POC in its current form is not clustered/fault tolerant. Running in high availability would require addition configuration on components but the components chosen all support clustering and active/active or active/standby configurations at each level (other than MySQL).
 
-        ** Future problems **
+** Future problems **
 
-          1. MySQL that may not be as dynamic with growing needs as some other options could be like HBase and Cassandra; particularly Cassandra for an IOT usecase being an AP database! 
+  1. MySQL that may not be as dynamic with growing needs as some other options could be like HBase and Cassandra; particularly Cassandra for an IOT usecase being an AP database! 
 
-          2. Currently POC is configured to run on `sparkMaster("local[*]")` mode securing maximum available CPUs to spark both for driver and worker nodes. If the spark cluster is configured (2.4.0); the commented line in code `driver.Main` can be uncommented to directly launch on server.
+  2. Currently POC is configured to run on `sparkMaster("local[*]")` mode securing maximum available CPUs to spark both for driver and worker nodes. If the spark cluster is configured (2.4.0); the commented line in code `driver.Main` can be uncommented to directly launch on server.
 
-        ** Budget **
+** Budget **
 
-          Budget for hardware would depend on end to end traffic model. For instance the only thing not variable (to some extent) for the moment is size of response received from API end point that is known and I can give small demonstration of data transfer calculation based on that external and internal communication bandwidth can be estimated;
+  Budget for hardware would depend on end to end traffic model. For instance the only thing not variable (to some extent) for the moment is size of response received from API end point that is known and I can give small demonstration of data transfer calculation based on that external and internal communication bandwidth can be estimated;
 
-          - 220KB/msg means if in 10 second each query is made that means;
+  - 220KB/msg means if in 10 second each query is made that means;
 
-          - 220 * 6 * 60 => 79.2MB per hour of data transfer
-          
-          - 79.2 * 24 *31 => approx 60GB per month datatransfer with one provider on external interface (simple multiplication if other partners with same volumes are added)
+  - 220 * 6 * 60 => 79.2MB per hour of data transfer
+  
+  - 79.2 * 24 *31 => approx 60GB per month datatransfer with one provider on external interface (simple multiplication if other partners with same volumes are added)
 
-          - based on frequency of same data when splitted into individual messages is almost 15% increase in size since towards internal interfaces (acorss each transfer point) becuase of additionl headers that are added
+  - based on frequency of same data when splitted into individual messages is almost 15% increase in size since towards internal interfaces (acorss each transfer point) becuase of additionl headers that are added
 
-        ** Maintenance **
+** Maintenance **
 
-          Since the solution is not on cloud, there will be more maintenance overhead as compared to cloud option. But more expertise are available since the stack is based on opensource software components.
-        
-        ** DevOps tecnhiques **
+  Since the solution is not on cloud, there will be more maintenance overhead as compared to cloud option. But more expertise are available since the stack is based on opensource software components.
 
-          CI/CD pipelines of dockers can be created (or with Kubernetes if traffic trends forecasting is unsure). I have been maintaining software code through Jenkins or CI/CD with GitLab where docker deployment pipelines is a breeze.
+** DevOps tecnhiques **
+
+  CI/CD pipelines of dockers can be created (or with Kubernetes if traffic trends forecasting is unsure). I have been maintaining software code through Jenkins or CI/CD with GitLab where docker deployment pipelines is a breeze.
 
 ### Deployment on GCP (**a bonus**):
 
@@ -181,19 +154,19 @@ Now you should write a plan explaining the following points. The goal here is no
 
 * *If our data source was to emit multiple versions (corrections for instance) of the same data, what could be the different applicable strategies?*
 
-* 1. If consistency is important factor, I shall change the database to HBase :) being CP db.
+1. If consistency is important factor, I shall change the database to HBase :) being CP db.
 
-* 2. If corrections of IoT device is within seconds/minutes, I shall change the streamining processing to near realtime (almost offline) with a delay window of X minutes so that when the data data is processed, I consider latest version of data in DB
+2. If corrections of IoT device is within seconds/minutes, I shall change the streamining processing to near realtime (almost offline) with a delay window of X minutes so that when the data data is processed, I consider latest version of data in DB
 
-* 3. If corrections of data and the faulty data are received hand-in-hand, although there exists a possibility of having ETL do the correction of data in ETL pipeline but I would go against this option if data is really fast and go for 2 or 4
+3. If corrections of data and the faulty data are received hand-in-hand, although there exists a possibility of having ETL do the correction of data in ETL pipeline but I would go against this option if data is really fast and go for 2 or 4
 
-* 4. Bring in another service between aggregation service and ETL based on SparkSQL tht is really performant for such a scenario of updating data in parallel way
+4. Bring in another service between aggregation service and ETL based on SparkSQL tht is really performant for such a scenario of updating data in parallel way
 
 
 * *What infrastructure, products, workflow scheduler, would you use to make sure the whole pipeline runs fine in production?*
 
-* The choices would widely depend on specific scenarios. Considering exactly this same scenario in production, the stack I have used is one of my most favorite (with exception of database layer or probably replace spark with Apache Flink for timeseries). I shall however, add many comoponents for monitoring, CI/CD, change the design to support high availability and fault tolerance. For easy extension I shall augment Docker with kubernetes, add grafana (or ELK?) for monitoring of each layer, put database daily backups on HDFS and support for geographical disaster recovery 
+The choices would widely depend on specific scenarios. Considering exactly this same scenario in production, the stack I have used is one of my most favorite (with exception of database layer or probably replace spark with Apache Flink for timeseries). I shall however, add many comoponents for monitoring, CI/CD, change the design to support high availability and fault tolerance. For easy extension I shall augment Docker with kubernetes, add grafana (or ELK?) for monitoring of each layer, put database daily backups on HDFS and support for geographical disaster recovery 
 
 * *Some months later, we think to apply another aggregation/model to the input data. How would your architecture evolve to integrate this challenge?*
 
-* The reason I introduce Kafka in design is that it makes the architecture Event Driven that means the design is ready to accept as many microservices as needed. If two services need to process on same data, they would receive data from same topic of kafka or if need processing in a pipeline, the topics could be changed. In a seemless way, microservices augment functionality of the solution we deliver.
+The reason I introduce Kafka in design is that it makes the architecture Event Driven that means the design is ready to accept as many microservices as needed. If two services need to process on same data, they would receive data from same topic of kafka or if need processing in a pipeline, the topics could be changed. In a seemless way, microservices augment functionality of the solution we deliver.
