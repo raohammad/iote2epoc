@@ -1,3 +1,5 @@
+package driver;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import db.MySqlPoolableObjectFactory;
 import domain.IOTRecord;
@@ -28,21 +30,28 @@ import java.util.Date;
 
 public class Main {
 
-    //private static final org.apache.log4j.Logger LOGGER = org.apache.log4j.Logger.getLogger(Main.class);
+    //private static final org.apache.log4j.Logger LOGGER = org.apache.log4j.Logger.getLogger(driver.Main.class);
     //DB Connection Settings
     final static String MYSQL_DRIVER = "com.mysql.jdbc.Driver";
-    final static String MYSQL_USERNAME = "root";
-    final static String MYSQL_PWD = "example";
-    final static String TABLE = "bcm";
-    final static String MYSQL_HOST = "192.168.64.2";
+
+    //final static String MYSQL_USERNAME = "root"; //local
+    final static String MYSQL_USERNAME = "candidate"; //bcm
+    //final static String MYSQL_PWD = "example"; //local
+    final static String MYSQL_PWD = "aIhsE6yS7exq7yz"; //bcm
+
+    final static String TABLE = "bcm"; //local/bcm
+
+    //final static String MYSQL_HOST = "192.168.64.2"; //local
+    final static String MYSQL_HOST = "35.195.64.14";    //bcm
     //Kafka Connection Settings
     final static String KAFKAHOST = "192.168.64.2";
+
     //Spark cluster settings
-    final static String SPARKMASTER = "192.168.64.2";
+    final static String SPARKMASTER = "192.168.64.2"; //local
 
     public static void main(String[] args) throws InterruptedException, IOException {
 
-        //ClassLoader classLoader = Main.class.getClassLoader();
+        //ClassLoader classLoader = driver.Main.class.getClassLoader();
         //GIS Data object
         final Gis gis = new Gis();
 
@@ -79,18 +88,18 @@ public class Main {
         stream.foreachRDD(rdd->{
 
             rdd.foreachPartition(p->{
-                ObjectPool pool = initMySqlConnectionPool(MYSQL_HOST,"3306","bcm",MYSQL_USERNAME,MYSQL_PWD);
+                ObjectPool pool = initMySqlConnectionPool(MYSQL_HOST,"3306","interview",MYSQL_USERNAME,MYSQL_PWD);
                 while (p.hasNext()) {
                     ConsumerRecord<String, String> record = p.next();
 
                     //SQLContext sqlContext = new SQLContext(sc);
                     IOTRecord iotRecord = mapper.readValue(record.value(), IOTRecord.class);
-                    //if(iotRecord.getCountry().equalsIgnoreCase("France")){
+                    if(iotRecord.getCountry().equalsIgnoreCase("France")){
 
                         //System.out.println(record.value());
                         //1-find if record exists for this region
                         String sql = "select * from "+TABLE+" where region='"+gis.getRegionOfPoint(iotRecord.getLat(),iotRecord.getLon())+"' AND hour='"+iotRecord.getHour()+"'";
-                        //System.out.println(sql);
+                        System.out.println(sql);
                         List<String> allRecords = new ArrayList();
                         Connection conn = null;
                         Statement st = null;
@@ -103,7 +112,7 @@ public class Main {
                             while (res.next()) {
                                 String dbrec = (String.valueOf(res.getString(1))+","+res.getString(2) +","+ String.valueOf(res.getDouble(3))+","+String.valueOf(res.getDouble(4)));
                                 //System.out.println(someRecord);
-                                //System.out.println(dbrec);
+                                System.out.println(dbrec);
                                 allRecords.add(dbrec);
                             }
 
@@ -149,7 +158,18 @@ public class Main {
                             pool.returnObject(conn);
                         }
 
-                    //}
+//                        //sparksql Read the table
+//                        Dataset<Row> df = sqlContext
+//                                .read()
+//                                .jdbc(MYSQL_CONNECTION_URL,
+//                                "bcm",
+//                                connectionProperties);
+//                        df.show();
+//                        df.printSchema();
+//                        Dataset<Row> appendSql = sqlContext.sql("INSERT INTO bcm VALUES('region' , 'hour', 21.4834 , -15)");
+
+
+                    }
                 }
             });
         });
@@ -164,7 +184,7 @@ public class Main {
         ssc.awaitTermination();
     }
 
-    private static ObjectPool initMySqlConnectionPool(String host, String port, String schema, String user, String password) throws IOException {
+    public static ObjectPool initMySqlConnectionPool(String host, String port, String schema, String user, String password) throws IOException {
 
         PoolableObjectFactory mySqlPoolableObjectFactory = new MySqlPoolableObjectFactory(host,
                 Integer.parseInt(port), schema, user, password);

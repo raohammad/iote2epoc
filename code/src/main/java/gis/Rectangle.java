@@ -7,6 +7,10 @@ import lombok.ToString;
 
 import java.io.Serializable;
 
+/**
+ * Created by hammadakhan on 28/04/2019.
+ */
+
 @AllArgsConstructor
 @ToString
 public class Rectangle implements Serializable {
@@ -84,7 +88,8 @@ public class Rectangle implements Serializable {
     }
 
     public boolean situatedInside(double x, double y) {
-
+        //X and Y are switched somehow :)) took my 30minutes when no point was overlapping.
+        // Finally just had to switch the values-will see later whats causing this either input or my own transformation from json to Jobject
         if(y>this.bottomleft.x && y<this.topright.x && x <this.topright.y && x > this.bottomleft.y)
             return true;
         else

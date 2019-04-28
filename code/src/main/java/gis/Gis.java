@@ -10,6 +10,10 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * Created by hammadakhan on 28/04/2019.
+ */
+
 public class Gis implements Serializable {
 
     HashMap<String, Rectangle> regionRectangles;
