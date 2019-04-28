@@ -2,7 +2,7 @@
  
 ## Context
 
-***This POC serves the objective is to find out the mean temperature for every region in France segregated to per hour per region within France.*** 
+***This POC serves the objective to find out the mean temperature for every region in France segregated by hour and region within France.*** 
 
 This is a demonstration of an IOT use case on a data stack ready to run at scale in high availibility, fault tolerant clustered environment, comprising of
   - Apache NiFi : Data Ingestion
@@ -165,8 +165,9 @@ Now you should write a plan explaining the following points. The goal here is no
 
 * *What infrastructure, products, workflow scheduler, would you use to make sure the whole pipeline runs fine in production?*
 
-The choices would widely depend on specific scenarios. Considering exactly this same scenario in production, the stack I have used is one of my most favorite (with exception of database layer or probably replace spark with Apache Flink for timeseries). I shall however, add many comoponents for monitoring, CI/CD, change the design to support high availability and fault tolerance. For easy extension I shall augment Docker with kubernetes, add grafana (or ELK?) for monitoring of each layer, put database daily backups on HDFS and support for geographical disaster recovery 
+The choices would widely depend on specific scenarios. Considering exactly this same scenario in production, the stack I have used is one of my most favorite (with exception of database layer or probably replace spark with Apache Flink for timeseries). For workflow scheduler I have evaluated apache Oozie but never had a chance to implement/observe it in production. I shall however, add many comoponents for monitoring, CI/CD, change the design to support high availability and fault tolerance. For easy extension I shall augment Docker with kubernetes, add grafana (or ELK?) for monitoring of each layer, put database daily backups on HDFS and support for geographical disaster recovery
 
 * *Some months later, we think to apply another aggregation/model to the input data. How would your architecture evolve to integrate this challenge?*
 
-The reason I introduce Kafka in design is that it makes the architecture Event Driven that means the design is ready to accept as many microservices as needed. If two services need to process on same data, they would receive data from same topic of kafka or if need processing in a pipeline, the topics could be changed. In a seemless way, microservices augment functionality of the solution we deliver.
+The reason I introduce Kafka in design is that it makes the architecture Event Driven that means the design is ready to accept as many microservices as needed. If two services need to process on same data, they would receive data from same topic of kafka or if need processing in a pipeline, the topics could be changed. In a seemless way, microservices augment functionality of the solution we deliver. Other way of achieving pipeline could be workflow managment system like Apache Oozie. 
+Also, having looked at semantic web knowledge graphs in some projects (a graph based data that is connected in global context) and powerful inferencing capabilities of these knowledge graphs, I shall not miss a chance to divide my data into Fast Data (or timeseries data) and slow data (semantic database that sits in a tripple store). Machine learning on fast data is widely worked(CNNs for image based data and LSTMN based neural networks for timeseries); graph convolational networks is an emerging field on developing NNs based on semantic/graph data and are proved to be efficient.
