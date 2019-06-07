@@ -140,8 +140,6 @@ So far with my limited knowledge of GCP, I know that NiFi supports direct ingest
 
 ## Architecture plan. 
 
-Now you should write a plan explaining the following points. The goal here is not to code anything but rather explain your ideal solution:
-
 * *If you were to develop the same application where the temperatures dataset grows by 1Go per minute, what would you do differently?* 
 
 * 1. I took this POC as an opportunity to upgraded my implementation from spark 2.2 to 2.4.0 (good chance to evaluate latest spark :)). I realized that multiple spark contexts under a JVM was not as easy as it was in previous spark versions (atleast for the moment for me since I was to respect the timeline) that means I could not implement the SparkSQL to directly process mysql rows as dataframes thats a chance to achieve another layer pf parallelilization (in adidtion to currently implemented DStream parallelization) and could be more performant from current approach I implemented for DB access. Although I made an optimization of creating the DB pool at partition level (and not at driver program (threat of starved db resources) or rdd level at worker node(threat of wasted db resources)) but in my understanding, having Dataframes of sparkSQL on worker threads that are already processing DStream RDDs could be another layer of parallelization and more performant [I've achieved it in spark batch jobs though]
@@ -154,7 +152,7 @@ Now you should write a plan explaining the following points. The goal here is no
 
 * *If our data source was to emit multiple versions (corrections for instance) of the same data, what could be the different applicable strategies?*
 
-1. If consistency is important factor, I shall change the database to HBase :) being CP db.
+1. If consistency is important factor, I shall change the database to HBase being CP db.
 
 2. If corrections of IoT device is within seconds/minutes, I shall change the streamining processing to near realtime (almost offline) with a delay window of X minutes so that when the data data is processed, I consider latest version of data in DB
 
@@ -169,5 +167,4 @@ The choices would widely depend on specific scenarios. Considering exactly this 
 
 * *Some months later, we think to apply another aggregation/model to the input data. How would your architecture evolve to integrate this challenge?*
 
-The reason I introduce Kafka in design is that it makes the architecture Event Driven that means the design is ready to accept as many microservices as needed. If two services need to process on same data, they would receive data from same topic of kafka or if need processing in a pipeline, the topics could be changed. In a seemless way, microservices augment functionality of the solution we deliver. Other way of achieving pipeline could be workflow managment system like Apache Oozie. 
-Also, having looked at semantic web knowledge graphs in some projects (a graph based data that is connected in global context) and powerful inferencing capabilities of these knowledge graphs, I shall not miss a chance to divide my data into Fast Data (or timeseries data) and slow data (semantic database that sits in a tripple store). Machine learning on fast data is widely worked(CNNs for image based data and LSTMN based neural networks for timeseries); graph convolational networks is an emerging field on developing NNs based on semantic/graph data and are proved to be efficient.
+The reason I introduce Kafka in design is that it makes the architecture Event Driven that means the design is ready to accept as many microservices as needed. If two services need to process on same data, they would receive data from same topic of kafka or if need processing in a pipeline, the topics could be changed. In a seemless way, microservices augment functionality of the solution we deliver. 
